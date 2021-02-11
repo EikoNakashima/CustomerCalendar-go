@@ -10,7 +10,7 @@ import (
  
 func main() {
 	router := gin.Default()
-	router.LoadHTMLGlob("templates/*.html")
+	router.LoadHTMLGlob("views/*.html")
 
 	dbInit()
 
