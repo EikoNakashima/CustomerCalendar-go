@@ -1,12 +1,13 @@
 package main
 
 import (
+	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/go-sql-driver/mysql"
 )
 
 func main() {
@@ -17,18 +18,25 @@ func main() {
 
 	//Index
 	router.GET("/", func(ctx *gin.Context) {
-		todos := dbGetAll()
+		tweets := dbGetAll()
 		ctx.HTML(200, "index.html", gin.H{
-			"todos": todos,
+			"tweets": tweets,
 		})
 	})
 
 	//Create
 	router.POST("/new", func(ctx *gin.Context) {
-		text := ctx.PostForm("text")
-		status := ctx.PostForm("status")
-		dbInsert(text, status)
-		ctx.Redirect(302, "/")
+		var form Tweet
+		// ここがバリデーション部分
+		if err := ctx.Bind(&form); err != nil {
+			tweets := dbGetAll()
+			ctx.HTML(http.StatusBadRequest, "index.html", gin.H{"tweets": tweets, "err": err})
+			ctx.Abort()
+		} else {
+			content := ctx.PostForm("content")
+			dbInsert(content)
+			ctx.Redirect(302, "/")
+		}
 	})
 
 	//Detail
@@ -38,8 +46,8 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		todo := dbGetOne(id)
-		ctx.HTML(200, "detail.html", gin.H{"todo": todo})
+		tweet := dbGetOne(id)
+		ctx.HTML(200, "detail.html", gin.H{"tweet": tweet})
 	})
 
 	//Update
@@ -49,9 +57,8 @@ func main() {
 		if err != nil {
 			panic("ERROR")
 		}
-		text := ctx.PostForm("text")
-		status := ctx.PostForm("status")
-		dbUpdate(id, text, status)
+		tweet := ctx.PostForm("tweet")
+		dbUpdate(id, tweet)
 		ctx.Redirect(302, "/")
 	})
 
@@ -62,8 +69,8 @@ func main() {
 		if err != nil {
 			panic("ERROR")
 		}
-		todo := dbGetOne(id)
-		ctx.HTML(200, "delete.html", gin.H{"todo": todo})
+		tweet := dbGetOne(id)
+		ctx.HTML(200, "delete.html", gin.H{"tweet": tweet})
 	})
 
 	//Delete
@@ -81,78 +88,156 @@ func main() {
 	router.Run()
 }
 
-type Todo struct {
+type Tweet struct {
 	gorm.Model
-	Text   string
-	Status string
+	Content string `form:"content" binding:"required"`
 }
 
-//DB初期化
+func gormConnect() *gorm.DB {
+	DBMS := "mysql"
+	USER := "test"
+	PASS := "12345678"
+	DBNAME := "test"
+	// MySQLだと文字コードの問題で"?parseTime=true"を末尾につける必要がある
+	CONNECT := USER + ":" + PASS + "@/" + DBNAME + "?parseTime=true"
+	db, err := gorm.Open(DBMS, CONNECT)
+
+	if err != nil {
+		panic(err.Error())
+	}
+	return db
+}
+
+// DBの初期化
 func dbInit() {
-	db, err := gorm.Open("sqlite3", "test.sqlite3")
-	if err != nil {
-		panic("データベース開けず！（dbInit）")
-	}
-	db.AutoMigrate(&Todo{})
+	db := gormConnect()
+
+	// コネクション解放解放
 	defer db.Close()
+	db.AutoMigrate(&Tweet{}) //構造体に基づいてテーブルを作成
 }
 
-//DB追加
-func dbInsert(text string, status string) {
-	db, err := gorm.Open("sqlite3", "test.sqlite3")
-	if err != nil {
-		panic("データベース開けず！（dbInsert)")
-	}
-	db.Create(&Todo{Text: text, Status: status})
+// データインサート処理
+func dbInsert(content string) {
+	db := gormConnect()
+
 	defer db.Close()
+	// Insert処理
+	db.Create(&Tweet{Content: content})
 }
 
 //DB更新
-func dbUpdate(id int, text string, status string) {
-	db, err := gorm.Open("sqlite3", "test.sqlite3")
-	if err != nil {
-		panic("データベース開けず！（dbUpdate)")
-	}
-	var todo Todo
-	db.First(&todo, id)
-	todo.Text = text
-	todo.Status = status
-	db.Save(&todo)
+func dbUpdate(id int, tweetText string) {
+	db := gormConnect()
+	var tweet Tweet
+	db.First(&tweet, id)
+	tweet.Content = tweetText
+	db.Save(&tweet)
 	db.Close()
+}
+
+// 全件取得
+func dbGetAll() []Tweet {
+	db := gormConnect()
+
+	defer db.Close()
+	var tweets []Tweet
+	// FindでDB名を指定して取得した後、orderで登録順に並び替え
+	db.Order("created_at desc").Find(&tweets)
+	return tweets
+}
+
+//DB一つ取得
+func dbGetOne(id int) Tweet {
+	db := gormConnect()
+	var tweet Tweet
+	db.First(&tweet, id)
+	db.Close()
+	return tweet
 }
 
 //DB削除
 func dbDelete(id int) {
-	db, err := gorm.Open("sqlite3", "test.sqlite3")
-	if err != nil {
-		panic("データベース開けず！（dbDelete)")
-	}
-	var todo Todo
-	db.First(&todo, id)
-	db.Delete(&todo)
+	db := gormConnect()
+	var tweet Tweet
+	db.First(&tweet, id)
+	db.Delete(&tweet)
 	db.Close()
 }
 
-//DB全取得
-func dbGetAll() []Todo {
-	db, err := gorm.Open("sqlite3", "test.sqlite3")
-	if err != nil {
-		panic("データベース開けず！(dbGetAll())")
-	}
-	var todos []Todo
-	db.Order("created_at desc").Find(&todos)
-	db.Close()
-	return todos
-}
+// type Todo struct {
+// 	gorm.Model
+// 	Text   string
+// 	Status string
+// }
 
-//DB一つ取得
-func dbGetOne(id int) Todo {
-	db, err := gorm.Open("sqlite3", "test.sqlite3")
-	if err != nil {
-		panic("データベース開けず！(dbGetOne())")
-	}
-	var todo Todo
-	db.First(&todo, id)
-	db.Close()
-	return todo
-}
+// //DB初期化
+// func dbInit() {
+// 	db, err := gorm.Open("mysql", "root@/sample?charset=utf8&parseTime=True&loc=Local")
+// 	if err != nil {
+// 		panic("データベース開けず！（dbInit）")
+// 	}
+// 	db.AutoMigrate(&Todo{})
+// 	defer db.Close()
+// 	db.LogMode(true)
+// }
+
+// //DB追加
+// func dbInsert(text string, status string) {
+// 	db, err := gorm.Open("mysql", "root@/sample?charset=utf8&parseTime=True&loc=Local")
+// 	if err != nil {
+// 		panic("データベース開けず！（dbInsert)")
+// 	}
+// 	db.Create(&Todo{Text: text, Status: status})
+// 	defer db.Close()
+// }
+
+// //DB更新
+// func dbUpdate(id int, text string, status string) {
+// 	db, err := gorm.Open("mysql", "root@/sample?charset=utf8&parseTime=True&loc=Local")
+// 	if err != nil {
+// 		panic("データベース開けず！（dbUpdate)")
+// 	}
+// 	var todo Todo
+// 	db.First(&todo, id)
+// 	todo.Text = text
+// 	todo.Status = status
+// 	db.Save(&todo)
+// 	db.Close()
+// }
+
+// //DB削除
+// func dbDelete(id int) {
+// 	db, err := gorm.Open("mysql", "root@/sample?charset=utf8&parseTime=True&loc=Local")
+// 	if err != nil {
+// 		panic("データベース開けず！（dbDelete)")
+// 	}
+// 	var todo Todo
+// 	db.First(&todo, id)
+// 	db.Delete(&todo)
+// 	db.Close()
+// }
+
+// //DB全取得
+// func dbGetAll() []Todo {
+// 	db, err := gorm.Open("mysql", "root@/sample?charset=utf8&parseTime=True&loc=Local")
+// 	if err != nil {
+// 		panic("データベース開けず！(dbGetAll())")
+// 	}
+// 	var todos []Todo
+// 	db.Order("created_at desc").Find(&todos)
+// 	db.Close()
+// 	return todos
+// }
+
+// //DB一つ取得
+// func dbGetOne(id int) Todo {
+// 	db, err := gorm.Open("mysql", "root@/sample?charset=utf8&parseTime=True&loc=Local")
+// 	if err != nil {
+// 		panic("データベース開けず！(dbGetOne())")
+// 	}
+// 	var todo Todo
+// 	db.First(&todo, id)
+// 	db.Close()
+// 	return todo
+// }
