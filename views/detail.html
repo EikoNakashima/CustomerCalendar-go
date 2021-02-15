@@ -3,6 +3,23 @@
 
     <form method="post" action="/update/{{.tweet.ID}}">
         <p>内容<input type="text" name="tweet" size="30" value="{{.tweet.Content}}" ></p>
+        <p>状態
+            <select name="status">
+                {{if eq .tweet.Status "未実行"}}
+                    <option value="未実行" selected>未実行</option>
+                    <option value="実行中">実行中</option>
+                    <option value="終了">終了</option>
+                {{else if eq .tweet.Status "実行中"}}
+                    <option value="未実行">未実行</option>
+                    <option value="実行中" selected>実行中</option>
+                    <option value="終了">終了</option>
+                {{else}}
+                    <option value="未実行">未実行</option>
+                    <option value="実行中">実行中</option>
+                    <option value="終了" selected>終了</option>
+                {{end}}
+            </select>
+        </p>
         <p><input type="submit" value="Send"></p>
     </form>
 </body>

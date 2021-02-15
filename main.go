@@ -34,7 +34,8 @@ func main() {
 			ctx.Abort()
 		} else {
 			content := ctx.PostForm("content")
-			dbInsert(content)
+			status := ctx.PostForm("status")
+			dbInsert(content, status)
 			ctx.Redirect(302, "/")
 		}
 	})
@@ -57,8 +58,9 @@ func main() {
 		if err != nil {
 			panic("ERROR")
 		}
-		tweet := ctx.PostForm("tweet")
-		dbUpdate(id, tweet)
+		content := ctx.PostForm("content")
+		status := ctx.PostForm("status")
+		dbUpdate(id, content, status)
 		ctx.Redirect(302, "/")
 	})
 
@@ -91,6 +93,7 @@ func main() {
 type Tweet struct {
 	gorm.Model
 	Content string `form:"content" binding:"required"`
+	Status  string
 }
 
 func gormConnect() *gorm.DB {
@@ -118,20 +121,21 @@ func dbInit() {
 }
 
 // データインサート処理
-func dbInsert(content string) {
+func dbInsert(content string, status string) {
 	db := gormConnect()
 
 	defer db.Close()
 	// Insert処理
-	db.Create(&Tweet{Content: content})
+	db.Create(&Tweet{Content: content, Status: status})
 }
 
 //DB更新
-func dbUpdate(id int, tweetText string) {
+func dbUpdate(id int, content string, status string) {
 	db := gormConnect()
 	var tweet Tweet
 	db.First(&tweet, id)
-	tweet.Content = tweetText
+	tweet.Content = content
+	tweet.Status = status
 	db.Save(&tweet)
 	db.Close()
 }
@@ -164,80 +168,3 @@ func dbDelete(id int) {
 	db.Delete(&tweet)
 	db.Close()
 }
-
-// type Todo struct {
-// 	gorm.Model
-// 	Text   string
-// 	Status string
-// }
-
-// //DB初期化
-// func dbInit() {
-// 	db, err := gorm.Open("mysql", "root@/sample?charset=utf8&parseTime=True&loc=Local")
-// 	if err != nil {
-// 		panic("データベース開けず！（dbInit）")
-// 	}
-// 	db.AutoMigrate(&Todo{})
-// 	defer db.Close()
-// 	db.LogMode(true)
-// }
-
-// //DB追加
-// func dbInsert(text string, status string) {
-// 	db, err := gorm.Open("mysql", "root@/sample?charset=utf8&parseTime=True&loc=Local")
-// 	if err != nil {
-// 		panic("データベース開けず！（dbInsert)")
-// 	}
-// 	db.Create(&Todo{Text: text, Status: status})
-// 	defer db.Close()
-// }
-
-// //DB更新
-// func dbUpdate(id int, text string, status string) {
-// 	db, err := gorm.Open("mysql", "root@/sample?charset=utf8&parseTime=True&loc=Local")
-// 	if err != nil {
-// 		panic("データベース開けず！（dbUpdate)")
-// 	}
-// 	var todo Todo
-// 	db.First(&todo, id)
-// 	todo.Text = text
-// 	todo.Status = status
-// 	db.Save(&todo)
-// 	db.Close()
-// }
-
-// //DB削除
-// func dbDelete(id int) {
-// 	db, err := gorm.Open("mysql", "root@/sample?charset=utf8&parseTime=True&loc=Local")
-// 	if err != nil {
-// 		panic("データベース開けず！（dbDelete)")
-// 	}
-// 	var todo Todo
-// 	db.First(&todo, id)
-// 	db.Delete(&todo)
-// 	db.Close()
-// }
-
-// //DB全取得
-// func dbGetAll() []Todo {
-// 	db, err := gorm.Open("mysql", "root@/sample?charset=utf8&parseTime=True&loc=Local")
-// 	if err != nil {
-// 		panic("データベース開けず！(dbGetAll())")
-// 	}
-// 	var todos []Todo
-// 	db.Order("created_at desc").Find(&todos)
-// 	db.Close()
-// 	return todos
-// }
-
-// //DB一つ取得
-// func dbGetOne(id int) Todo {
-// 	db, err := gorm.Open("mysql", "root@/sample?charset=utf8&parseTime=True&loc=Local")
-// 	if err != nil {
-// 		panic("データベース開けず！(dbGetOne())")
-// 	}
-// 	var todo Todo
-// 	db.First(&todo, id)
-// 	db.Close()
-// 	return todo
-// }
