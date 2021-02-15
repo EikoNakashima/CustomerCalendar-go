@@ -116,17 +116,17 @@ func dbInit() {
 	db := gormConnect()
 
 	// コネクション解放解放
-	defer db.Close()
 	db.AutoMigrate(&Tweet{}) //構造体に基づいてテーブルを作成
+	defer db.Close()
 }
 
 // データインサート処理
 func dbInsert(content string, status string) {
 	db := gormConnect()
 
-	defer db.Close()
 	// Insert処理
 	db.Create(&Tweet{Content: content, Status: status})
+	defer db.Close()
 }
 
 //DB更新
