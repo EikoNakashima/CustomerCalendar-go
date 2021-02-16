@@ -96,6 +96,13 @@ type Tweet struct {
 	Status  string
 }
 
+// User モデルの宣言
+type User struct {
+	gorm.Model
+	Username string `form:"username" binding:"required" gorm:"unique;not null"`
+	Password string `form:"password" binding:"required"`
+}
+
 func gormConnect() *gorm.DB {
 	DBMS := "mysql"
 	USER := "test"
