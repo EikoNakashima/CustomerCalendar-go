@@ -1,15 +1,8 @@
-<!-- {{ template "head" }}
-    <body>
-        <article>
-            This is a test login form.
-            <form class="login-form" action="//localhost:8080/user/login" method="post">
-                <label>Username</label><br>
-                <input type="text" name="username"><br>
-                <label>Password</label><br>
-                <input type="password" name="password"><br>
-                <label>または</label><a href="//localhost:8080/signup">サインアップ</a>
-                <input type="submit" value="送信">
-            </form>
-        <article>
-    </body>
-{{ template "foot" }} -->
+<div class="input">
+    <p>{{.err}}</p>
+    <form action="/login" method="post">
+      <p>ユーザー名 :<input type="text" name="username" placeholder=""/></p>
+      <p>パスワード :<input type="text" name="password" placeholder=""/></p>
+      <p><input type="submit" value="ログイン" /></p>
+    </form>
+  </div>
