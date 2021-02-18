@@ -1,12 +1,12 @@
 package main
 
 import (
-	"gin_test/crypto"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
 
+	"github.com/EikoNakashima/CustomerCalendar-go/crypto"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	_ "github.com/joho/godotenv/autoload"
